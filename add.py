@@ -43,8 +43,37 @@ def view_products():
                 )
             )
 
-        # Handle search parameters
-        # ... existing code to handle search parameters ...
+        # Handle search parameters from GET or POST request
+        search_query = None
+        product_status = None
+        product_type = None
+
+        if request.method == 'POST' and form.validate_on_submit():
+            # Handle form submission
+            search_query = form.product_name.data
+            product_status = form.product_status.data
+            product_type = form.product_type.data
+        else:
+            # Handle search query from GET request
+            search_query = request.args.get('product_name', '')
+            form.product_name.data = search_query  # Set the form field
+
+        # Apply search filters
+        if search_query:
+            search_term = f"%{search_query}%"
+            products_query = products_query.filter(
+                or_(
+                    Product.product_name.ilike(search_term),
+                    ProductAlias.alias_name.ilike(search_term)
+                )
+            )
+        if product_status and product_status != 'Select':
+            products_query = products_query.filter(Product.product_status == product_status)
+        if product_type:
+            type_id = product_type
+            if isinstance(type_id, list):
+                type_id = type_id[0]
+            products_query = products_query.filter(ProductType.type_id == type_id)
 
         # Fetch products
         products = products_query.all()
@@ -61,7 +90,7 @@ def view_products():
                     'last_updated': product.last_updated,
                     'portfolio_names': set(),
                     'product_types': set(),
-                    'is_admin_only': product.is_admin_only  # Access using label
+                    'is_admin_only': product.is_admin_only
                 }
             if product.category_name:
                 product_dict[product_id]['portfolio_names'].add(product.category_name)
