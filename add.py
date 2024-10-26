@@ -1,61 +1,15 @@
-<div class="pf-v5-c-form__group">
-        <div class="pf-v5-c-check">
-            <input class="pf-v5-c-check__input" type="checkbox" id="is_admin_only" name="is_admin_only" value="true">
-            <label class="pf-v5-c-check__label" for="is_admin_only">Visible to Admins Only</label>
-        </div>
-    </div>
+I didn't set this up. It was already in place; I just happened to discover it accidentally. 😊 That said, I believe it’s quite helpful and offers several benefits, including:
 
+Consistency: By providing a centralized view, you can immediately see all items assigned to you, even if they’re not included in a sprint. This makes it easy to keep track of all your work.
 
+Visibility:
 
-    <div class="pf-v5-c-form__group">
-        <div class="pf-v5-c-check">
-            <input class="pf-v5-c-check__input" type="checkbox" id="is_admin_only" name="is_admin_only" value="true" {% if product.is_admin_only %}checked{% endif %}>
-            <label class="pf-v5-c-check__label" for="is_admin_only">Visible to Admins Only</label>
-        </div>
-    </div>
+Related Items: While working on a story, if you come across something related to an unassigned story or a story that should be in the sprint, you have the flexibility to move or assign it to yourself.
+Comprehensive Overview: The platform displays everything—features, epics, tasks within the epic, subtasks, and so on. You don’t need to click around to view tasks, epics, or features; everything is readily accessible.
+Efficiency in Workflow:
 
+Quick Assignment: You can reassign tasks or stories on the go without the need to navigate multiple menus.
+Progress Tracking: The platform helps in understanding dependencies and progress at a glance, reducing the need to switch between views.
+Collaboration: This setup encourages collaboration by making it easier for team members to see what others are working on and identify overlapping areas or tasks that may need attention.
 
-
-    is_admin_only = request.form.get('is_admin_only') == 'true'
-
-        new_product = Product(
-            # ... other fields ...
-            is_admin_only=is_admin_only,
-        )
-
-
-
-        product.is_admin_only = request.form.get('is_admin_only') == 'true'
-
-
-
-# Check if the user is an admin
-        user_is_admin = 'admin' in current_user.roles
-
-        if not user_is_admin:
-            query = query.filter(Product.is_admin_only == False)
-
-
-# Check if the user has admin permission
-        user_is_admin = permissions.opl_admin_permission.can()
-
-        if not user_is_admin:
-            query = query.filter(Product.is_admin_only == False)
-
-
-
-  # Check if the user has admin permission
-        user_is_admin = permissions.opl_admin_permission.can()
-
-        if not user_is_admin:
-            query = query.filter(Product.is_admin_only == False)
-
-
-
-  
-        if not user_is_admin:
-            query = query.filter(Product.is_admin_only == False)
-
-
-
-            
+Let me know if you have any questions or if there’s anything you’d like to add!
