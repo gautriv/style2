@@ -1,15 +1,97 @@
-I didn't set this up. It was already in place; I just happened to discover it accidentally. 😊 That said, I believe it’s quite helpful and offers several benefits, including:
+from flask import Blueprint, render_template, request, current_app, flash
+from sqlalchemy import or_
+import permissions
+import logging
 
-Consistency: By providing a centralized view, you can immediately see all items assigned to you, even if they’re not included in a sprint. This makes it easy to keep track of all your work.
+logger = logging.getLogger(__name__)
 
-Visibility:
+@view_routes.route('/opl/search-to-view-products', methods=['GET', 'POST'])
+def view_products():
+    # Initialize variables
+    form = SearchForm()
+    products = []
+    products_with_portfolios = []
+    selected_product = None  # Initialize to avoid UnboundLocalError
 
-Related Items: While working on a story, if you come across something related to an unassigned story or a story that should be in the sprint, you have the flexibility to move or assign it to yourself.
-Comprehensive Overview: The platform displays everything—features, epics, tasks within the epic, subtasks, and so on. You don’t need to click around to view tasks, epics, or features; everything is readily accessible.
-Efficiency in Workflow:
+    session = current_app.config['Session']()
+    try:
+        # Define the base query
+        products_query = session.query(
+            Product.product_id.label('product_id'),
+            Product.product_name.label('product_name'),
+            Product.product_status.label('product_status'),
+            Product.last_updated.label('last_updated'),
+            ProductPortfolios.category_name.label('category_name'),
+            ProductType.product_type.label('product_type'),
+            Product.is_admin_only.label('is_admin_only')  # Include and label
+        ).outerjoin(ProductPortfolioMap, Product.product_id == ProductPortfolioMap.product_id)\
+         .outerjoin(ProductPortfolios, ProductPortfolioMap.category_id == ProductPortfolios.category_id)\
+         .join(ProductTypeMap, ProductTypeMap.product_id == Product.product_id)\
+         .join(ProductType, ProductType.type_id == ProductTypeMap.type_id)\
+         .outerjoin(ProductAlias, ProductAlias.product_id == Product.product_id)\
+         .order_by(Product.product_name)
 
-Quick Assignment: You can reassign tasks or stories on the go without the need to navigate multiple menus.
-Progress Tracking: The platform helps in understanding dependencies and progress at a glance, reducing the need to switch between views.
-Collaboration: This setup encourages collaboration by making it easier for team members to see what others are working on and identify overlapping areas or tasks that may need attention.
+        # Check user permissions
+        user_is_admin = permissions.opl_editor_permission.can()
+        logger.debug(f"user_is_admin: {user_is_admin}")
 
-Let me know if you have any questions or if there’s anything you’d like to add!
+        if not user_is_admin:
+            products_query = products_query.filter(
+                or_(
+                    Product.is_admin_only == False,
+                    Product.is_admin_only.is_(None)
+                )
+            )
+
+        # Handle search parameters
+        # ... existing code to handle search parameters ...
+
+        # Fetch products
+        products = products_query.all()
+
+        # Process results
+        product_dict = {}
+        for product in products:
+            product_id = product.product_id
+            if product_id not in product_dict:
+                product_dict[product_id] = {
+                    'product_id': product.product_id,
+                    'product_name': product.product_name,
+                    'product_status': product.product_status,
+                    'last_updated': product.last_updated,
+                    'portfolio_names': set(),
+                    'product_types': set(),
+                    'is_admin_only': product.is_admin_only  # Access using label
+                }
+            if product.category_name:
+                product_dict[product_id]['portfolio_names'].add(product.category_name)
+            if product.product_type:
+                product_dict[product_id]['product_types'].add(product.product_type)
+
+        # Convert to list
+        products_with_portfolios = [
+            {
+                'product_id': prod['product_id'],
+                'product_name': prod['product_name'],
+                'product_status': prod['product_status'],
+                'last_updated': prod['last_updated'],
+                'portfolio_names': sorted(prod['portfolio_names']),
+                'product_types': sorted(prod['product_types']),
+                'is_admin_only': prod['is_admin_only']
+            }
+            for prod in product_dict.values()
+        ]
+
+    except Exception as e:
+        logger.error(f"Error during product retrieval: {e}")
+        flash('An error occurred while retrieving products.', 'error')
+    finally:
+        session.close()
+
+    # Render template
+    return render_template(
+        'opl/view_search.html',
+        form=form,
+        products_with_portfolios=products_with_portfolios,
+        user_is_admin=user_is_admin
+    )
